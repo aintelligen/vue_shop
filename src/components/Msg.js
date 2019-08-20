@@ -42,36 +42,9 @@ function createNode(obj) {
   }</div>`;
   var div = document.createElement('div');
   div.style.position = 'fixed';
+  div.style.zIndex = '10000';
   div.className = obj.defaultClass;
   div.innerHTML = html;
   return div;
 }
-
-/* 
-.msg-masking-box_component .show-masking {
-  display: block;
-  transition: hideMask 1.5s;
-}
-@keyframes hideMask {
-  0% {
-    opacity: 1;
-  }
-  20% {
-    opacity: 0.8;
-  }
-  40% {
-    opacity: 0.6;
-  }
-  60% {
-    opacity: 0.4;
-  }
-  80% {
-    opacity: 0.2;
-  }
-  100% {
-    opacity: 0;
-    display: none;
-  }
-}
- */
 export default Msg;
