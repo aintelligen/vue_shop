@@ -232,6 +232,12 @@ export default {
             this.goodsList = [];
             this.busy = false;
           }
+        })
+        .catch(err => {
+          this.endAjax = false;
+          Msg({
+            content: "服务器开小差"
+          });
         });
     },
     sortGoods() {
