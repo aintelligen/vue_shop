@@ -175,7 +175,10 @@
                     Set Default
                   </div>
                 </li>
-                <li class="addr-new">
+                <li
+                  class="addr-new"
+                  @click="addressFlag = true"
+                >
                   <div class="add-new-inner">
                     <i class="icon-add">
                       <svg class="icon icon-add">
@@ -250,6 +253,88 @@
         >取消</a>
       </div>
     </modal>
+    <!-- 新增地址 -->
+    <div
+      class="md-modal-box"
+      v-bind:class="{'md-show':addressFlag}"
+    >
+      <div class="md-wrap">
+        <div
+          class="md-modal modal-msg md-modal-transition"
+          v-bind:class="{'md-show':addressFlag}"
+        >
+          <div class="md-modal-inner">
+            <div class="md-top">
+              <div class="md-title">Add new address</div>
+              <button
+                class="md-close"
+                @click="addressFlag=false"
+              ><img
+                  src="/static/close.png"
+                  alt=""
+                ></button>
+            </div>
+            <div class="md-content">
+              <div class="confirm-tips">
+                <ul>
+                  <li class="regi_form_input">
+                    <i class="icon"></i>
+                    <input
+                      type="text"
+                      tabindex="1"
+                      name="recipient"
+                      placeholder="recipient"
+                      v-model="recipient"
+                      class="regi_login_input regi_login_input_left"
+                    >
+                  </li>
+                  <li class="regi_form_input noMargin">
+                    <i class="address-icon"><img
+                        src="/static/address.png"
+                        alt=""
+                      ></i>
+                    <input
+                      type="text"
+                      tabindex="2"
+                      name="streetName"
+                      placeholder="recipient address"
+                      v-model="streetName"
+                      class="regi_login_input regi_login_input_left login-input-no input_text"
+                    >
+                  </li>
+                  <li class="regi_form_input noMargin">
+                    <i class="address-icon"><img
+                        src="/static/iphone.png"
+                        alt=""
+                      ></i>
+                    <input
+                      type="number"
+                      tabindex="2"
+                      name="tel"
+                      placeholder="phone number"
+                      v-model="tel"
+                      class="regi_login_input regi_login_input_left login-input-no input_text"
+                    >
+                  </li>
+                </ul>
+              </div>
+              <div class="login-wrap">
+                <a
+                  href="javascript:;"
+                  class="btn-login"
+                  v-on:click.stop.prevent="addSubmit"
+                >确认添加地址</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="md-overlay"
+          v-if="addressFlag"
+          @click="addressFlag=false"
+        ></div>
+      </div>
+    </div>
     <nav-footer></nav-footer>
   </div>
 </template>
@@ -260,7 +345,10 @@ import NavHeader from "./../components/NavHeader";
 import NavFooter from "./../components/NavFooter";
 import NavBread from "./../components/NavBread";
 import Modal from "./../components/Modal";
+import Msg from "./../components/Msg";
 import { currency } from "./../util/currency";
+
+import util from "../util/utils";
 import axios from "axios";
 export default {
   data() {
@@ -270,7 +358,12 @@ export default {
       selectedAddrId: "",
       addressList: [],
       isMdShow: false,
-      addressId: ""
+      addressId: "",
+      newAddress: false,
+      recipient: "",
+      streetName: "",
+      tel: "",
+      addressFlag: false
     };
   },
   mounted() {
@@ -289,13 +382,30 @@ export default {
   },
   methods: {
     init() {
-      axios.get("/users/addressList").then(response => {
+      axios.post("/users/addressList", this.getAllState()).then(response => {
         let res = response.data;
         //console.log(res);
         if (res.status === "0") {
-          this.addressList = res.result;
+          this.addressList = res.result.sort(function(a, b) {
+            return Number(b.isDefault) - Number(a.isDefault);
+          });
+          if (this.addressList.length < 1) {
+            this.selectedAddrId = undefined;
+          } else {
+            this.selectedAddrId = this.addressList[0].addressId;
+          }
         }
       });
+    },
+    getAllState() {
+      var state = this.$store.state;
+      var objs = {};
+
+      Object.keys(state).forEach(key => {
+        objs[key] = util.getLocal(key);
+      });
+
+      return Object.assign({}, objs);
     },
     expand() {
       if (this.limit == 3) {
@@ -305,32 +415,102 @@ export default {
       }
     },
     setDefault(id) {
-      axios.post("/users/setDefault", { addressId: id }).then(response => {
-        let res = response.data;
-        if (res.status === "0") {
-          console.log("set Default");
-          this.init();
-        }
-      });
+      axios
+        .post("/users/setDefault", {
+          addressId: id,
+          userName: this.getAllState().userName
+        })
+        .then(response => {
+          let res = response.data;
+          if (res.status === "0") {
+            console.log("set Default");
+            this.init();
+          }
+        });
     },
     delAddressConfirm(addressId) {
       this.isMdShow = true;
+      console.log(addressId);
       this.addressId = addressId;
     },
     closeModal() {
       this.isMdShow = false;
     },
+    // 删除地址
     delAddress() {
-      var id = this.addressId;
-      axios.post("/users/delAddress", { addressId: id }).then(response => {
-        let res = response.data;
-        if (res.status === "0") {
-          console.log("del Address");
-          this.closeModal();
-          this.init();
-        }
-      });
+      var addressId = this.addressId;
+      axios
+        .post("/users/delAddress", {
+          addressId: addressId,
+          userName: this.getAllState().userName
+        })
+        .then(response => {
+          let res = response.data;
+          if (res.status === "0") {
+            console.log("del Address");
+            Msg({
+              content: "删除地址成功"
+            });
+            this.closeModal();
+            this.init();
+          }
+        });
+    },
+    // 增加地址
+    addSubmit() {
+      var userName = this.recipient;
+      var tel = this.tel;
+      var streetName = this.streetName;
+
+      if (userName && tel && streetName) {
+        var addObj = {
+          // addressId: "100001",
+          isDefault: false,
+          // postCode: 100001,
+          streetName: streetName,
+          tel: tel,
+          userName: userName
+        };
+
+        axios
+          .post("/users/addAddress", {
+            addObj: addObj,
+            userName: this.getAllState().userName
+          })
+          .then(response => {
+            let res = response.data;
+            if (res.status === "0") {
+              console.log("add Address");
+              this.addressFlag = false;
+              this.recipient = "";
+              this.tel = "";
+              this.streetName = "";
+              Msg({
+                content: "增加地址成功"
+              });
+              this.init();
+            }
+          });
+      } else {
+        Msg({
+          content: "信息填写不完整"
+        });
+      }
     }
   }
 };
 </script>
+<style>
+.address-icon {
+  display: inline-block;
+  float: left;
+  width: 25px;
+  height: 29px;
+  margin: 6px 0 0 8px;
+}
+@media only screen and (max-width: 767px) {
+  .address-icon {
+    margin: 6px 0 0 0;
+  }
+}
+</style>
