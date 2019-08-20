@@ -49,7 +49,7 @@ const store = new Vuex.Store({
 
 // axios
 
-axios.defaults.baseURL = window.location.href.match(/192.|127.|localhost/gim) ? 'http://localhost:3333' : '/api/';
+axios.defaults.baseURL = window.location.href.match(/192.|127.|localhost/gim) ? 'http://localhost:3333' : '';
 axios.defaults.headers.common['token'] = util.getLocal('token') ? util.getLocal('token') : '';
 const filterApi = ['/login', '/checkLogin', '/goods/list'];
 var CancelToken = axios.CancelToken;
